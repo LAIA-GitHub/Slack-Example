@@ -12,12 +12,12 @@ load_dotenv('.env')
 logging.basicConfig(level=logging.DEBUG)
 
 # Initialize FastAPI app
-fastapi_app = FastAPI()
+app = FastAPI()
 
 # Slack signature verifier
 signature_verifier = SignatureVerifier(os.environ["SLACK_SIGNING_SECRET"])
 
-@fastapi_app.post("/slack/events")
+@app.post("/slack/events")
 async def slack_events(request: Request, x_slack_signature: str = Header(None), x_slack_request_timestamp: str = Header(None)):
     logging.info("Received Slack event")
     if not signature_verifier.is_valid_request(await request.body(), x_slack_signature, x_slack_request_timestamp):
@@ -33,6 +33,6 @@ async def slack_events(request: Request, x_slack_signature: str = Header(None), 
     return JSONResponse(status_code=200, content={"status": "ok"})
 
 # Run the FastAPI app with Uvicorn
-if __name__ == "__main__":
+#if __name__ == "__main__":
     import uvicorn
     uvicorn.run(fastapi_app, host="0.0.0.0", port=5000)
