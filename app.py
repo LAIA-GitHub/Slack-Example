@@ -1,11 +1,9 @@
 import os
 import logging
-from slack_bolt import App
-from slack_bolt.adapter.fastapi import SlackRequestHandler
 from slack_sdk.signature import SignatureVerifier
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Header
 from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv('.env')
@@ -13,38 +11,26 @@ load_dotenv('.env')
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Initializes your app with your bot token
-app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
-
 # Initialize FastAPI app
 fastapi_app = FastAPI()
-handler = SlackRequestHandler(app)
 
 # Slack signature verifier
 signature_verifier = SignatureVerifier(os.environ["SLACK_SIGNING_SECRET"])
 
-@app.event("message")
-def handle_message_events(body, say, logger):
-    logger.info(f"Received message: {body}")
-    try:
-        event = body['event']
-        user_input = event.get('text')
-        if user_input:
-            say("This is a test response!")
-    except Exception as e:
-        logger.error(f"Error handling message: {e}")
-        say("Sorry, something went wrong while processing your message.")
-
 @fastapi_app.post("/slack/events")
 async def slack_events(request: Request, x_slack_signature: str = Header(None), x_slack_request_timestamp: str = Header(None)):
+    logging.info("Received Slack event")
     if not signature_verifier.is_valid_request(await request.body(), x_slack_signature, x_slack_request_timestamp):
+        logging.error("Invalid request signature")
         return JSONResponse(status_code=400, content={"error": "invalid request"})
 
     data = await request.json()
     if "challenge" in data:
+        logging.info("Responding to Slack challenge")
         return JSONResponse(content={"challenge": data["challenge"]})
 
-    return await handler.handle(request)
+    logging.info("Received event data: %s", data)
+    return JSONResponse(status_code=200, content={"status": "ok"})
 
 # Run the FastAPI app with Uvicorn
 if __name__ == "__main__":
