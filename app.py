@@ -2,6 +2,7 @@ import os
 import logging
 from slack_bolt import App
 from slack_bolt.adapter.fastapi import SlackRequestHandler
+from slack_sdk.signature import SignatureVerifier
 from langchain.prompts.chat import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
@@ -11,11 +12,14 @@ from langchain.chains import LLMChain
 from langchain_openai import ChatOpenAI
 from langchain.chains.conversation.memory import ConversationBufferWindowMemory
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Header
 from fastapi.responses import JSONResponse
 
 # Load environment variables from .env file
 load_dotenv('.env')
+
+# Initialize logging
+logging.basicConfig(level=logging.DEBUG)
 
 # Initializes your app with your bot token
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
@@ -23,6 +27,9 @@ app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 # Initialize FastAPI app
 fastapi_app = FastAPI()
 handler = SlackRequestHandler(app)
+
+# Slack signature verifier
+signature_verifier = SignatureVerifier(os.environ["SLACK_SIGNING_SECRET"])
 
 # LangChain implementation
 system_message_prompt = SystemMessagePromptTemplate.from_template(
@@ -55,7 +62,14 @@ def handle_message_events(body, say, logger):
         say("Sorry, something went wrong while processing your message.")
 
 @fastapi_app.post("/slack/events")
-async def slack_events(request: Request):
+async def slack_events(request: Request, x_slack_signature: str = Header(None), x_slack_request_timestamp: str = Header(None)):
+    if not signature_verifier.is_valid_request(await request.body(), x_slack_signature, x_slack_request_timestamp):
+        return JSONResponse(status_code=400, content={"error": "invalid request"})
+
+    data = await request.json()
+    if "challenge" in data:
+        return JSONResponse(content={"challenge": data["challenge"]})
+
     return await handler.handle(request)
 
 # Run the FastAPI app with Uvicorn
