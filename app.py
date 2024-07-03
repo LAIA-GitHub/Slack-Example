@@ -21,9 +21,8 @@ fastapi_app = FastAPI()
 handler = SlackRequestHandler(app)
 
 # Slack signature verifier
-signature_verifier = SignatureVerifier(os.environ["SLACK_SIGNING_SECRET"])
+signature_verifier = SignatureVerifier(signing_secret=os.environ["SLACK_SIGNING_SECRET"])
 
-# Handle Slack events
 @app.event("message")
 def handle_message_events(body, say, logger):
     logger.info(f"Received message: {body}")
@@ -38,7 +37,11 @@ def handle_message_events(body, say, logger):
 
 @fastapi_app.post("/slack/events")
 async def slack_events(request: Request, x_slack_signature: str = Header(None), x_slack_request_timestamp: str = Header(None)):
-    if not signature_verifier.is_valid_request(await request.body(), x_slack_signature, x_slack_request_timestamp):
+    if not signature_verifier.is_valid(
+        body=await request.body(),
+        timestamp=x_slack_request_timestamp,
+        signature=x_slack_signature
+    ):
         return JSONResponse(status_code=400, content={"error": "invalid request"})
 
     data = await request.json()
