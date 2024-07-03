@@ -20,3 +20,4 @@ data = supabase.table('Q&A').insert({"Question": transcription_status, "Answer":
 
 
 
+

@@ -39,13 +39,8 @@ load_dotenv()
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Check if environment variables are loaded
-supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_KEY")
-if not supabase_url or not supabase_key:
-    logging.error("SUPABASE_URL or SUPABASE_KEY is not set.")
-else:
-    logging.info("SUPABASE_URL and SUPABASE_KEY are set.")
+# Setup Supabase client
+supabase_client = SupaBase.setup_supabase_client()
 
 # Initializes your Slack app with your bot token
 slack_app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
@@ -59,38 +54,24 @@ signature_verifier = SignatureVerifier(signing_secret=os.environ.get("SLACK_SIGN
 # Scheduler for daily vector store update
 scheduler = BackgroundScheduler()
 
-def update_vector_store():
-    try:
-        logging.info("Starting vector store update...")
-        client = SupaBase.setup_supabase_client()
-        SupaBase.fetch_data_from_database_and_save(client)
-        
-        local_docs = local_data_loader.load_local_documents("data/opendata")
-        database_docs = local_data_loader.load_local_documents("data/inputdata")
-        combined_docs = [*local_docs, *database_docs]
-
-        if not combined_docs:
-            logging.warning("No documents found for vector store update.")
-            return
-
-        vector_store = CreateVector.create_vector_store(combined_docs)
-        logging.info("Vectorstore updated successfully")
-    except Exception as e:
-        logging.error(f"Failed to update vector store: {e}")
-
-
-# Schedule the vector store update to run once a day
-scheduler.add_job(update_vector_store, 'interval', days=1)
-scheduler.start()
-
 @app.get("/api/update_vectorstore")
-def manual_update_vectorstore():
-    try:
-        update_vector_store()
-        return {"status": "Vectorstore updated"}
-    except Exception as e:
-        logging.error(f"Failed to manually update vector store: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+def fetch_data_rebuild_vectorstore():
+    SupaBase.fetch_data_from_database_and_save(supabase_client)
+
+    # Load documents from local folder
+    local_docs = local_data_loader.load_local_documents("docs/opendata")
+
+    # Fetch data from Supabase
+    database_docs = local_data_loader.load_local_documents("docs/inputdata")
+
+    # Combine documents from local and database
+    combined_docs = [*local_docs, *database_docs]
+
+    # Create and load vector store
+    vector_store = CreateVector.create_vector_store(combined_docs)
+
+    return 200, "Vectorstore created"
+
 
 # Slack event handling
 @slack_app.event("message")
@@ -122,13 +103,56 @@ def handle_app_mention_events(body, say, logger):
         text = event.get('text')
         thread_ts = event.get('ts')
 
-        response = run_chain(text)
+        response = ModifyingPrompt.create_chain(text)
+
+        # Tokenize and chunk the input message
+        chunks = Chunk.chunk_input_message(text)
+        print("chunks are:", chunks)
+
+        vector_store_path = 'data/static'
+        vector_store = CreateVector.load_vector_store(vector_store_path)
+        all_retrieved_docs = []
+
+        for chunk in chunks:
+            retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 2})
+            retrieved_docs = retriever.invoke(chunk)
+            all_retrieved_docs.extend(retrieved_docs)
+
+        all_retrieved_docs = list({doc.page_content: doc for doc in all_retrieved_docs}.values())
+
+        print(f"Number of retrieved documents: {len(all_retrieved_docs)}")    
+        
+        context_docs = "\n".join([doc.page_content for doc in all_retrieved_docs])
+        print("Context to send:", context_docs)
+
+        context_docs = truncate_context(context_docs, 6000)
+
+        chain = ModifyingPrompt.create_chain(vector_store)
+
+        response = chain.invoke({
+        "input": text,
+        "context": context_docs
+        })
+
+        llm_answer_status = response['answer']  
+        print("Answer:", llm_answer_status)
+        
+        data = {
+            "transcription_status": text,
+            "llm_answer_status": llm_answer_status,
+        }
+
+        json_response = json.dumps(data)
+
+        SupaBase.push_data_to_database(SupaBase.setup_supabase_client(), text, llm_answer_status)
+        
 
         # Reply in a thread
         say(text=response, thread_ts=thread_ts)
     except Exception as e:
         logger.error(f"Error handling app_mention event: {e}")
         say("Sorry, something went wrong while processing your message.")
+
 
 @app.post("/slack/events")
 async def slack_events(request: Request, x_slack_signature: str = Header(None), x_slack_request_timestamp: str = Header(None)):
@@ -145,55 +169,6 @@ async def slack_events(request: Request, x_slack_signature: str = Header(None), 
 
     return await handler.handle(request)
 
-@app.post("/api/rag_processing")
-async def rag_processing(input_text: str):
-    transcription_status = 'in_process'
-    llm_answer_status = 'in_process'
-
-    transcription_status = input_text
-
-    # Tokenize and chunk the input message
-    chunks = Chunk.chunk_input_message(transcription_status)
-    print("chunks are:", chunks)
-
-    vector_store_path = 'data/static'
-    vector_store = CreateVector.load_vector_store(vector_store_path)
-    all_retrieved_docs = []
-
-    for chunk in chunks:
-        retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 2})
-        retrieved_docs = retriever.invoke(chunk)
-        all_retrieved_docs.extend(retrieved_docs)
-
-    all_retrieved_docs = list({doc.page_content: doc for doc in all_retrieved_docs}.values())
-
-    print(f"Number of retrieved documents: {len(all_retrieved_docs)}")    
-    
-    context_docs = "\n".join([doc.page_content for doc in all_retrieved_docs])
-    print("Context to send:", context_docs)
-
-    context_docs = truncate_context(context_docs, 6000)
-
-    chain = ModifyingPrompt.create_chain(vector_store)
-
-    response = chain.invoke({
-        "input": transcription_status,
-        "context": context_docs
-    })
-
-    llm_answer_status = response['answer']  
-    print("Answer:", llm_answer_status)
-    
-    data = {
-        "transcription_status": transcription_status,
-        "llm_answer_status": llm_answer_status,
-    }
-
-    json_response = json.dumps(data)
-
-    SupaBase.push_data_to_database(SupaBase.setup_supabase_client(), transcription_status, llm_answer_status)
-    
-    return json_response
 
 def truncate_context(context, max_tokens):
     tokens = context.split()
