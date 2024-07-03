@@ -2,7 +2,7 @@ import os
 import logging
 import json
 from fastapi import FastAPI, Request, Header
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from slack_bolt import App
 from slack_bolt.adapter.fastapi import SlackRequestHandler
@@ -77,7 +77,8 @@ def manual_update_vectorstore():
     update_vector_store()
     return {"status": "Vectorstore updated"}
 
-@app.event("message")
+# Slack event handling
+@slack_app.event("message")
 def handle_message_events(body, say, logger):
     logger.info(f"Received message: {body}")
     try:
@@ -97,7 +98,24 @@ def handle_message_events(body, say, logger):
         logger.error(f"Error handling message: {e}")
         say("Sorry, something went wrong while processing your message.")
 
-@slack_app.post("/slack/events")
+@slack_app.event("app_mention")
+def handle_app_mention_events(body, say, logger):
+    logger.info(f"Received app_mention event: {body}")
+    try:
+        event = body['event']
+        user = event.get('user')
+        text = event.get('text')
+        thread_ts = event.get('ts')
+
+        response = run_chain(text)
+
+        # Reply in a thread
+        say(text=response, thread_ts=thread_ts)
+    except Exception as e:
+        logger.error(f"Error handling app_mention event: {e}")
+        say("Sorry, something went wrong while processing your message.")
+
+@app.post("/slack/events")
 async def slack_events(request: Request, x_slack_signature: str = Header(None), x_slack_request_timestamp: str = Header(None)):
     if not signature_verifier.is_valid(
         body=await request.body(),
@@ -114,7 +132,6 @@ async def slack_events(request: Request, x_slack_signature: str = Header(None), 
 
 @app.post("/api/rag_processing")
 async def rag_processing(input_text: str):
-
     transcription_status = 'in_process'
     llm_answer_status = 'in_process'
 
