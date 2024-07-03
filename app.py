@@ -39,6 +39,14 @@ load_dotenv()
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
 
+# Check if environment variables are loaded
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
+if not supabase_url or not supabase_key:
+    logging.error("SUPABASE_URL or SUPABASE_KEY is not set.")
+else:
+    logging.info("SUPABASE_URL and SUPABASE_KEY are set.")
+
 # Initializes your Slack app with your bot token
 slack_app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
@@ -53,8 +61,9 @@ scheduler = BackgroundScheduler()
 
 def update_vector_store():
     try:
+        logging.info("Starting vector store update...")
         SupaBase.fetch_data_from_database_and_save(SupaBase.setup_supabase_client())
-
+        
         # Load documents from local folder
         local_docs = local_data_loader.load_local_documents("data/opendata")
 
@@ -67,7 +76,7 @@ def update_vector_store():
         # Create and load vector store
         vector_store = CreateVector.create_vector_store(combined_docs)
 
-        logging.info("Vectorstore updated")
+        logging.info("Vectorstore updated successfully")
     except Exception as e:
         logging.error(f"Failed to update vector store: {e}")
 
@@ -148,7 +157,7 @@ async def rag_processing(input_text: str):
     chunks = Chunk.chunk_input_message(transcription_status)
     print("chunks are:", chunks)
 
-    vector_store_path = 'docs/static'
+    vector_store_path = 'data/static'
     vector_store = CreateVector.load_vector_store(vector_store_path)
     all_retrieved_docs = []
 
