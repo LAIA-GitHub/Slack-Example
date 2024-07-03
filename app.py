@@ -33,9 +33,9 @@ signature_verifier = SignatureVerifier(signing_secret=os.environ["SLACK_SIGNING_
 
 # LangChain implementation
 system_message_prompt = SystemMessagePromptTemplate.from_template(
-    "Assistant is a large language model trained by OpenAI. "
-    "Assistant is designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations. "
-    "Assistant is constantly learning and improving, capable of processing and understanding large amounts of text to provide accurate responses."
+    "LAIA is a collective intelligence trained by it's community. "
+    "LAIA is designed to inform and process requests in the city of Barcelona and interact with them, from answering simple questions to providing in-depth explanations. "
+    "LAIA is constantly learning and improving, capable of processing and understanding large amounts of text to provide accurate responses."
 )
 
 human_message_prompt = HumanMessagePromptTemplate.from_template("{human_input}")
