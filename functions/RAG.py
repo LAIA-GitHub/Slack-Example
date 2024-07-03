@@ -1,0 +1,83 @@
+from dotenv import load_dotenv
+import SupaBase 
+import CreateVector
+import ModifyingPrompt
+import json
+import Chunk
+
+# Load environment variables
+load_dotenv()
+
+def rag_processing(text, supabase_client): 
+
+    file_uploaded_status = 'in_process'
+    transcription_status = text
+
+    # chunk transctription
+    # Tokenize and chunk the input message
+    #chunks = []
+    chunks = Chunk.chunk_input_message(transcription_status)
+    print("chunks are:", chunks)
+
+    vector_store_path = 'docs/static'
+    # Initialize embeddings
+    #embeddings = OpenAIEmbeddings()
+
+    # will give the most relevant chunks of data to the LLM to let it answer your question
+    vector_store = CreateVector.load_vector_store(vector_store_path)
+    all_retrieved_docs = []
+
+    # run through chunks input message chunks and grabs 4 kwars
+    for chunk in chunks:
+        retriever = vector_store.as_retriever(search_type="similarity",search_kwargs={"k": 2})
+        retrieved_docs = retriever.invoke(chunk)
+        all_retrieved_docs.extend(retrieved_docs)
+
+    # Remove duplicates
+    all_retrieved_docs = list({doc.page_content: doc for doc in all_retrieved_docs}.values())
+
+    # Check the number of retrieved documents
+    print(f"Number of retrieved documents: {len(all_retrieved_docs)}")    
+    
+    # Prepare the context from retrieved documents
+    context_docs = "\n".join([doc.page_content for doc in all_retrieved_docs])
+    print("Context to send:", context_docs)
+
+    # Truncate context to ensure it does not exceed token limit
+    context_docs = truncate_context(context_docs, 6000)  # Adjust max_tokens as needed
+
+
+    ##### run RAG 
+    #vector_store = CreateVector.load_vector_store('docs/static')
+    chain = ModifyingPrompt.create_chain(vector_store)
+
+
+    # Invoke the chain
+    response = chain.invoke({
+        "input": text,
+        "context": context_docs
+    })
+
+    llm_answer_status = response['answer']  
+    print("Answer:", llm_answer_status)
+    
+    data = {
+        "file_uploaded_status": file_uploaded_status,
+        "transcription_status": transcription_status,
+        #"language_status": language_status,
+        "llm_answer_status": llm_answer_status,
+    }
+
+    # Convert the dictionary to a JSON string
+    json_response = json.dumps(data)
+
+    SupaBase.push_data_to_database(supabase_client, transcription_status, llm_answer_status)
+    
+    return json_response
+
+
+def truncate_context(context, max_tokens):
+    tokens = context.split()
+    if len(tokens) > max_tokens:
+        tokens = tokens[:max_tokens]
+    return ' '.join(tokens)

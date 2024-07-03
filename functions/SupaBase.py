@@ -1,5 +1,5 @@
-from supabase import create_client as supabase_create_client, Client
 import os
+from supabase import create_client as supabase_create_client, Client
 from dotenv import load_dotenv
 import csv
 
@@ -19,7 +19,7 @@ def fetch_data_from_database_and_save(client):
     live_data = client.table('Inputs').select("*").execute()
 
     # Define path to save CSV
-    csv_file_path = 'data/inputdata/input.csv' 
+    csv_file_path = '../data/inputdata/input.csv' 
 
     # Save the data to CSV
     if live_data.data:
