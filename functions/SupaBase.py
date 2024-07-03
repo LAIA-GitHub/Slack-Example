@@ -13,13 +13,16 @@ def setup_supabase_client():
 def fetch_data(client):
     LiveData = client.table('Inputs').select("*").execute()
     return LiveData.data  # Ensure to return just the data part if that's what you need
-    
 
 def fetch_data_from_database_and_save(client):
     live_data = client.table('Inputs').select("*").execute()
 
     # Define path to save CSV
-    csv_file_path = '../../data/inputdata/input.csv'
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    csv_file_path = os.path.join(current_directory, 'data/inputdata/input.csv')
+
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(csv_file_path), exist_ok=True)
 
     # Save the data to CSV
     if live_data.data:
@@ -31,8 +34,6 @@ def fetch_data_from_database_and_save(client):
                 writer.writerow(data)
 
 def push_data_to_database(client, transcription_status, llm_answer_status):
-    #data = client.table('Q&A').insert({"id": 1, "Question": transcription_status, "Answer": llm_answer_status}).execute()
-    
     try:
         data = client.table('Q&A').insert({"Question": transcription_status, "Answer": llm_answer_status}).execute()
         print(f"Data:", data)
