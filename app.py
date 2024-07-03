@@ -53,11 +53,18 @@ def handle_message_events(body, say, logger):
     logger.info(f"Received message: {body}")
     try:
         event = body['event']
-        user_input = event.get('text')
-        if user_input:
+        user = event.get('user')
+        text = event.get('text')
+        channel_type = event.get('channel_type')
+        thread_ts = event.get('ts')
+
+        # Check if the message is in a direct message (im) or if the bot is mentioned
+        if channel_type == 'im' or f'<@{os.environ["SLACK_BOT_USER_ID"]}>' in text:
             # Generate AI response using LangChain
-            ai_response = chatgpt_chain.predict(human_input=user_input)
-            say(ai_response)
+            ai_response = chatgpt_chain.predict(human_input=text)
+
+            # Reply in a thread
+            say(text=ai_response, thread_ts=thread_ts)
     except Exception as e:
         logger.error(f"Error handling message: {e}")
         say("Sorry, something went wrong while processing your message.")
