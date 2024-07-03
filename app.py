@@ -62,23 +62,22 @@ scheduler = BackgroundScheduler()
 def update_vector_store():
     try:
         logging.info("Starting vector store update...")
-        SupaBase.fetch_data_from_database_and_save(SupaBase.setup_supabase_client())
+        client = SupaBase.setup_supabase_client()
+        SupaBase.fetch_data_from_database_and_save(client)
         
-        # Load documents from local folder
         local_docs = local_data_loader.load_local_documents("data/opendata")
-
-        # Fetch data from Supabase
         database_docs = local_data_loader.load_local_documents("data/inputdata")
-
-        # Combine documents from local and database
         combined_docs = [*local_docs, *database_docs]
 
-        # Create and load vector store
-        vector_store = CreateVector.create_vector_store(combined_docs)
+        if not combined_docs:
+            logging.warning("No documents found for vector store update.")
+            return
 
+        vector_store = CreateVector.create_vector_store(combined_docs)
         logging.info("Vectorstore updated successfully")
     except Exception as e:
         logging.error(f"Failed to update vector store: {e}")
+
 
 # Schedule the vector store update to run once a day
 scheduler.add_job(update_vector_store, 'interval', days=1)
