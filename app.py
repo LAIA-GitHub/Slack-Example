@@ -1,6 +1,7 @@
 import os
 import logging
 from fastapi import FastAPI, Request, Header
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slack_bolt import App
 from slack_bolt.adapter.fastapi import SlackRequestHandler
@@ -17,7 +18,23 @@ logging.basicConfig(level=logging.DEBUG)
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 # Initialize FastAPI app
-fastapi_app = FastAPI()
+app = FastAPI()
+
+# Configure CORS
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    # Add additional origins as needed
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Allow specific origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
+
 handler = SlackRequestHandler(app)
 
 # Slack signature verifier
@@ -36,7 +53,7 @@ def handle_message_events(body, say, logger):
         logger.error(f"Error handling message: {e}")
         say("Sorry, something went wrong while processing your message.")
 
-@fastapi_app.post("/slack/events")
+@app.post("/slack/events")
 async def slack_events(request: Request, x_slack_signature: str = Header(None), x_slack_request_timestamp: str = Header(None)):
     if not signature_verifier.is_valid_request(await request.body(), x_slack_signature, x_slack_request_timestamp):
         return JSONResponse(status_code=400, content={"error": "invalid request"})
@@ -50,4 +67,4 @@ async def slack_events(request: Request, x_slack_signature: str = Header(None), 
 # Run the FastAPI app with Uvicorn
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(fastapi_app, host="0.0.0.0", port=5000)
+    uvicorn.run(app, host="0.0.0.0", port=5000)
