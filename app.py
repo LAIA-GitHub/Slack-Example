@@ -53,4 +53,4 @@ async def slack_events(request: Request, x_slack_signature: str = Header(None), 
 # Run the FastAPI app with Uvicorn
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(fastapi_app, host="0.0.0.0", port=5000)
+    uvicorn.run(fastapi_app, host="0.0.0.0", port=8000)
