@@ -1,9 +1,10 @@
+import os
 from dotenv import load_dotenv
-import SupaBase 
-import CreateVector
-import ModifyingPrompt
+from functions  import SupaBaseSetup 
+from functions import CreateVector
+from functions import ModifyingPrompt
 import json
-import Chunk
+from functions import Chunk
 
 # Load environment variables
 load_dotenv()
@@ -71,7 +72,7 @@ def rag_processing(text, supabase_client):
     # Convert the dictionary to a JSON string
     json_response = json.dumps(data)
 
-    SupaBase.push_data_to_database(supabase_client, transcription_status, llm_answer_status)
+    SupaBaseSetup.push_data_to_database(supabase_client, transcription_status, llm_answer_status)
     
     return json_response
 

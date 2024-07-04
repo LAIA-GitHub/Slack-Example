@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
 from functions import RAG
 from functions import UpdateVectorStore
-from functions import SupaBase
+from functions import SupaBaseSetup
 from openai import OpenAI
 
 
@@ -25,7 +25,7 @@ load_dotenv()
 openai_client = OpenAI()
 
 # Setup Supabase client
-supabase_client = SupaBase.setup_supabase_client()
+supabase_client = SupaBaseSetup.setup_supabase_client()
 
 # Initialize Slack app
 slack_app = App(signing_secret=os.environ["SLACK_SIGNING_SECRET"])
