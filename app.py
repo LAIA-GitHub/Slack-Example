@@ -39,11 +39,12 @@ def handle_message_events(body, say):
         user_message = body['event']['text']
         channel_id = body['event']['channel']
 
+        # Prepare the input for the chain
+        input_data = {"input": user_message, "context": ""}  # You can add context if needed
+
         # Create the retrieval chain with the vector store
         chain = RAG.rag_processing(input_data, supabase_client)
 
-        # Prepare the input for the chain
-        input_data = {"input": user_message, "context": ""}  # You can add context if needed
 
         # Run the chain using __call__
         response = chain(input_data)
