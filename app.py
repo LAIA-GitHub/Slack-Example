@@ -43,14 +43,12 @@ def handle_message_events(body, say):
         input_data = {"input": user_message, "context": ""}  # You can add context if needed
         logging.info(f"Input data: {input_data}")
         # Create the retrieval chain with the vector store
-        chain = RAG.rag_processing(input_data, supabase_client)
-        logging.info(f"Chain created with response: {chain}")
+        response = RAG.rag_processing(input_data, supabase_client)
+        logging.info(f"Chain created with response: {response}")
 
-        # Run the chain using __call__
-        response = chain(input_data)
-
-        # Log response to check its type
-        logging.info(f"Response from chain: {response}")
+        # Ensure the response is a string
+        if isinstance(response, dict):
+            response = response.get('answer', 'Sorry, I encountered an error while processing your request.')
 
         # Send the response back to Slack
         say(text=response, channel=channel_id)

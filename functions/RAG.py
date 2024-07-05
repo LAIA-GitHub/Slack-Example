@@ -11,7 +11,6 @@ load_dotenv()
 
 def rag_processing(text, supabase_client): 
 
-    file_uploaded_status = 'in_process'
     transcription_status = text
 
     # chunk transctription
@@ -59,7 +58,7 @@ def rag_processing(text, supabase_client):
         "context": context_docs
     })
 
-    llm_answer_status = response['answer']  
+    llm_answer_status = response['answer'] if isinstance(response, dict) else response   
     print("Answer:", llm_answer_status)
     
     data = {
