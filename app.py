@@ -41,17 +41,14 @@ def handle_message_events(body, say):
 
         # Prepare the input for the chain
         input_data = {"input": user_message, "context": ""}  # You can add context if needed
-
+        logging.info(f"Input data: {input_data}")
         # Create the retrieval chain with the vector store
         chain = RAG.rag_processing(input_data, supabase_client)
-
+        logging.info(f"Chain created with response: {chain}")
 
         # Run the chain using __call__
         response = chain(input_data)
 
-        # Log input data to check its type
-        logging.info(f"Input data for chain: {input_data}")
-        
         # Log response to check its type
         logging.info(f"Response from chain: {response}")
 

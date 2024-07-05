@@ -63,18 +63,17 @@ def rag_processing(text, supabase_client):
     print("Answer:", llm_answer_status)
     
     data = {
-        "file_uploaded_status": file_uploaded_status,
+        "file_uploaded_status": 'in_process',
         "transcription_status": transcription_status,
-        #"language_status": language_status,
         "llm_answer_status": llm_answer_status,
     }
 
-    # Convert the dictionary to a JSON string
     json_response = json.dumps(data)
 
     SupaBaseSetup.push_data_to_database(supabase_client, transcription_status, llm_answer_status)
     
-    return json_response
+    return llm_answer_status  # Return the string answer directly
+
 
 
 def truncate_context(context, max_tokens):
