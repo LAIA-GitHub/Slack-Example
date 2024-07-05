@@ -49,6 +49,12 @@ def handle_message_events(body, say):
         # Run the chain using __call__
         response = chain(input_data)
 
+        # Log input data to check its type
+        logging.info(f"Input data for chain: {input_data}")
+        
+        # Log response to check its type
+        logging.info(f"Response from chain: {response}")
+
         # Send the response back to Slack
         say(text=response, channel=channel_id)
 
