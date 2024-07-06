@@ -36,6 +36,7 @@ handler = SlackRequestHandler(slack_app)
 @slack_app.event("message")
 def handle_message_events(body, say):
     response = "Sorry, I encountered an error while processing your request."  # Default response
+    input_data = None  # Define input_data to ensure it is in scope
     try:
 
         logging.info(f"Incoming body: {json.dumps(body, indent=2)}")
