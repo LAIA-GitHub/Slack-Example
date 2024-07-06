@@ -1,13 +1,14 @@
-import nltk
-from nltk.tokenize import word_tokenize
-# Download the NLTK sentence tokenizer model
-nltk.download('punkt')
 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-def chunk_input_message(input_text, chunk_size=3):
-
-  # Tokenize and chunk input text into smaller meaningful chunks (every 3 words as a separate chunk).
-
-  words = word_tokenize(input_text)
-  chunks = [" ".join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
-  return chunks
+def chunk_input_message(input_text, chunk_size=300):
+    # Initialize the text splitter
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=0,  # Adjust overlap as needed
+    )
+    
+    # Split the input text into chunks
+    chunks = splitter.split_text(input_text)
+    
+    return chunks
