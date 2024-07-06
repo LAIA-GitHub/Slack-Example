@@ -40,12 +40,13 @@ def handle_message_events(body, say):
     try:
         logging.info(f"Incoming body: {json.dumps(body, indent=2)}")
 
-        user_message = body["event"]["text"]
-        channel_id = body["event"]["channel"]
+        text = body["text"]
+        event = body.get('event', {})
+        channel_id = body["channel"]
 
         text = text.replace("").strip()
 
-        if not user_message:
+        if not text:
             logging.error("No text found in the message event")
             say(text="No message text found.", channel=channel_id)
             return
