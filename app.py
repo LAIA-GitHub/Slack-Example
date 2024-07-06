@@ -35,6 +35,7 @@ handler = SlackRequestHandler(slack_app)
 
 @slack_app.event("message")
 def handle_message_events(body, say):
+    response = "Sorry, I encountered an error while processing your request."  # Default response
     try:
 
         logging.info(f"Incoming body: {json.dumps(body, indent=2)}")
@@ -48,22 +49,18 @@ def handle_message_events(body, say):
             return
 
         # Prepare the input for the chain
+        response_data = RAG.rag_processing(input_data, supabase_client)
         input_data = {"input": user_message, "context": ""}  # You can add context if needed
 
-        logging.info(f"Input data: {input_data}")
-        # Create the retrieval chain with the vector store
-        response = RAG.rag_processing(input_data, supabase_client)
-        logging.info(f"Chain created with response: {response}")
-
         # Ensure the response is a string
-        if isinstance(response, dict):
-            response = response.get('answer', 'Sorry, I encountered an error while processing your request.')
-
-        if not isinstance(response, str):
+        if isinstance(response_data, dict):
+            response = response_data.get('answer', 'Sorry, I encountered an error while processing your request.')
+        elif isinstance(response_data, str):
+            response = response_data
+        else:
             response = "Sorry, I encountered an unexpected response format."
 
-        # Send the response back to Slack
-        say(text=response, channel=channel_id)
+        logging.info(f"Response to send: {response}")
 
     except Exception as e:
         logging.error(f"Error handling message event: {e}")
