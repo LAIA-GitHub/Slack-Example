@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from langchain.vectorstores.faiss import FAISS
+from langchain_community.vectorstores import FAISS
 from functions.MergeData import fetch_and_merge_data
 from functions.CreateVector import create_vector_store
 from functions.SupaBaseSetup import setup_supabase_client

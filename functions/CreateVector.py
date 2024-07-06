@@ -4,7 +4,7 @@ load_dotenv()
 
 
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores.faiss import FAISS
+from langchain_community.vectorstores import FAISS
 
 
 def create_vector_store(docs):
