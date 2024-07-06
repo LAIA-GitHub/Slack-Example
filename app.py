@@ -59,12 +59,18 @@ def handle_message_events(body, say):
         if isinstance(response, dict):
             response = response.get('answer', 'Sorry, I encountered an error while processing your request.')
 
+        if not isinstance(response, str):
+            response = "Sorry, I encountered an unexpected response format."
+
         # Send the response back to Slack
         say(text=response, channel=channel_id)
 
     except Exception as e:
         logging.error(f"Error handling message event: {e}")
-        say(text="Sorry, I encountered an error while processing your request.", channel=channel_id)
+        
+    say(text=response, channel=channel_id)
+
+        
 
 @app.post("/slack/events")
 async def slack_events(req: Request):
