@@ -51,7 +51,7 @@ def handle_message_events(body, say):
             return
 
         # Prepare the input for the chain
-        input_data = {"input": text, "context": ""}  # You can add context if needed
+        input_data = text  # You can add context if needed
         response_data = RAG.rag_processing(input_data, supabase_client)
 
         # Ensure the response is a string
