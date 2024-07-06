@@ -40,9 +40,10 @@ def handle_message_events(body, say):
     try:
         logging.info(f"Incoming body: {json.dumps(body, indent=2)}")
 
-        text = body["text"]
+        
         event = body.get('event', {})
-        channel_id = body["channel"]
+        text = event["text"]
+        channel_id = event.get('channel')
 
         text = text.replace("").strip()
 
