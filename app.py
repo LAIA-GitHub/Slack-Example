@@ -39,12 +39,17 @@ def handle_message_events(body, say):
 
         logging.info(f"Incoming body: {json.dumps(body, indent=2)}")
 
-        user_message = body['event']['text']
-        channel_id = body['event']['channel']
+        user_message = body.get('event', {}).get('text')
+        channel_id = body.get('event', {}).get('channel')
+
+        if not user_message:
+            logging.error("No text found in the message event")
+            say(text="No message text found.", channel=channel_id)
+            return
 
         # Prepare the input for the chain
         input_data = {"input": user_message, "context": ""}  # You can add context if needed
-        
+
         logging.info(f"Input data: {input_data}")
         # Create the retrieval chain with the vector store
         response = RAG.rag_processing(input_data, supabase_client)
