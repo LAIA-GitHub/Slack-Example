@@ -9,9 +9,9 @@ from functions import Chunk
 # Load environment variables
 load_dotenv()
 
-def rag_processing(text, supabase_client): 
+def rag_processing(input_data, supabase_client): 
 
-    transcription_status = text
+    transcription_status = input_data
 
     # chunk transctription
     # Tokenize and chunk the input message
@@ -54,7 +54,7 @@ def rag_processing(text, supabase_client):
 
     # Invoke the chain
     response = chain.invoke({
-        "input": text,
+        "input": input_data,
         "context": context_docs
     })
 

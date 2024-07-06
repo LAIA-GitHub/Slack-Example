@@ -36,9 +36,8 @@ handler = SlackRequestHandler(slack_app)
 @slack_app.event("message")
 def handle_message_events(body, say):
     response = "Sorry, I encountered an error while processing your request."  # Default response
-    input_data = None  # Define input_data to ensure it is in scope
+    #input_data = None  # Define input_data to ensure it is in scope
     try:
-
         logging.info(f"Incoming body: {json.dumps(body, indent=2)}")
 
         user_message = body.get('event', {}).get('text')
@@ -50,8 +49,8 @@ def handle_message_events(body, say):
             return
 
         # Prepare the input for the chain
-        response_data = RAG.rag_processing(input_data, supabase_client)
         input_data = {"input": user_message, "context": ""}  # You can add context if needed
+        response_data = RAG.rag_processing(input_data, supabase_client)
 
         # Ensure the response is a string
         if isinstance(response_data, dict):
