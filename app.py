@@ -36,11 +36,15 @@ handler = SlackRequestHandler(slack_app)
 @slack_app.event("message")
 def handle_message_events(body, say):
     try:
+
+        logging.info(f"Incoming body: {json.dumps(body, indent=2)}")
+
         user_message = body['event']['text']
         channel_id = body['event']['channel']
 
         # Prepare the input for the chain
         input_data = {"input": user_message, "context": ""}  # You can add context if needed
+        
         logging.info(f"Input data: {input_data}")
         # Create the retrieval chain with the vector store
         response = RAG.rag_processing(input_data, supabase_client)
