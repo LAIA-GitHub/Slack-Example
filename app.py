@@ -45,7 +45,7 @@ def handle_message_events(body, say):
         text = event["text"]
         channel_id = event.get('channel')
 
-        text = text.replace("").strip()
+        #text = text.replace("").strip()
 
         if not text:
             logging.error("No text found in the message event")
