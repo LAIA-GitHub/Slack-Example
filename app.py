@@ -34,22 +34,23 @@ handler = SlackRequestHandler(slack_app)
 
 
 @slack_app.event("message")
-def handle_message_events(body, say):
+def handle_event(body, say, event):
     response = "Sorry, I encountered an error while processing your request."  # Default response
     #input_data = None  # Define input_data to ensure it is in scope
     try:
         logging.info(f"Incoming body: {json.dumps(body, indent=2)}")
 
         
-        event = body.get('event', {})
+        #event = body.get('event', {})
         text = event["text"]
         channel_id = event.get('channel')
+        thread_ts = event.get("ts")
 
         #text = text.replace("").strip()
 
         if not text:
             logging.error("No text found in the message event")
-            say(text="No message text found.", channel=channel_id)
+            say(text="No message text found.", channel=channel_id, thread_ts=thread_ts)
             return
 
         # Prepare the input for the chain
@@ -69,9 +70,17 @@ def handle_message_events(body, say):
     except Exception as e:
         logging.error(f"Error handling message event: {e}")
         
-    say(text=response, channel=channel_id)
+    say(text=response, channel=channel_id, thread_ts=thread_ts)
 
-        
+@slack_app.event("message")
+def handle_message_events(body, say):
+    event = body.get('event', {})
+    handle_event(body, say, event)
+
+@slack_app.event("app_mention")
+def handle_app_mentions(body, say):
+    event = body.get('event', {})
+    handle_event(body, say, event)
 
 @app.post("/slack/events")
 async def slack_events(req: Request):
